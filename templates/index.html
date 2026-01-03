@@ -1,0 +1,1581 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Operational Command Center - Sistem Kesehatan</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #071028 0%, #0f1724 60%, #08203a 100%), radial-gradient(circle at 10% 10%, rgba(255,255,255,0.02), transparent 20%);
+            background-attachment: fixed;
+            color: #333;
+            min-height: 100vh;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        header {
+            background: rgba(255,255,255,0.92);
+            width: 100%;
+            margin: 0;
+            padding: 15px 0;
+            box-shadow: 0 6px 30px rgba(2,6,23,0.35);
+            border-radius: 0;
+            backdrop-filter: blur(6px);
+        }
+
+        h1 {
+            color: #667eea;
+            font-size: 28px;
+            font-weight: 700;
+        }
+
+        .subtitle {
+            color: #666;
+            font-size: 14px;
+            margin-top: 5px;
+        }
+
+        .last-update {
+            background: #f0f0f0;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 13px;
+            color: #555;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+            transition: transform 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .stat-label {
+            font-size: 14px;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 10px;
+        }
+
+        .stat-value {
+            font-size: 36px;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .stat-subtext {
+            font-size: 13px;
+            color: #666;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .dashboard-card {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+        }
+
+        .card-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #333;
+            border-bottom: 2px solid #f0f0f0;
+            padding-bottom: 10px;
+        }
+
+        .hospital-item {
+            padding: 15px;
+            margin-bottom: 10px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+        }
+
+        .hospital-name {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .capacity-bar {
+            display: flex;
+            align-items: center;
+            margin: 8px 0;
+            font-size: 13px;
+        }
+
+        .capacity-label {
+            width: 80px;
+            color: #666;
+        }
+
+        .progress-bar {
+            flex: 1;
+            height: 20px;
+            background: #e0e0e0;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 0 10px;
+            position: relative;
+        }
+
+        .progress-fill {
+            height: 100%;
+            transition: width 0.5s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .progress-fill.green {
+            background: linear-gradient(90deg, #34eb77, #2ecc71);
+        }
+
+        .progress-fill.yellow {
+            background: linear-gradient(90deg, #f7dc6f, #f39c12);
+        }
+
+        .progress-fill.red {
+            background: linear-gradient(90deg, #ec7063, #e74c3c);
+        }
+
+        .capacity-value {
+            width: 70px;
+            text-align: right;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .er-status {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-bottom: 15px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        .er-metric {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .er-metric-label {
+            font-size: 12px;
+            color: #888;
+            margin-bottom: 5px;
+        }
+
+        .er-metric-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: #667eea;
+        }
+
+        .severity-tags {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+        }
+
+        .severity-tag {
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .severity-critical {
+            background: #fee;
+            color: #c00;
+        }
+
+        .severity-urgent {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .severity-semi {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .severity-non {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .queue-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 15px;
+            margin-bottom: 8px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .queue-name {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .queue-count {
+            font-size: 20px;
+            font-weight: 700;
+            color: #667eea;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .status-normal {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-crowded {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .status-critical {
+            background: #fee;
+            color: #c00;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin-top: 15px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+
+        .error {
+            background: #fee;
+            color: #c00;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+
+        @media (max-width: 768px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            h1 {
+                font-size: 20px;
+            }
+        }
+
+        .refresh-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background 0.3s ease;
+        }
+
+        .refresh-btn:hover {
+            background: #5568d3;
+        }
+
+        .data-quality-badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 5px;
+            font-size: 10px;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+
+        .quality-high {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .quality-medium {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .quality-low {
+            background: #fee;
+            color: #c00;
+        }
+
+        .navbar {
+            display: flex;
+            gap: 10px;
+        }
+
+        .nav-btn {
+            background: #f0f0f0;
+            color: #333;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .nav-btn:hover {
+            background: #e0e0e0;
+        }
+
+        .nav-btn.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .page-content {
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .referral-container {
+            display: grid;
+            grid-template-columns: 400px 1fr;
+            gap: 20px;
+        }
+
+        .referral-form-card {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+            height: fit-content;
+        }
+
+        .referral-form-card h2 {
+            margin-bottom: 20px;
+            color: #667eea;
+            font-size: 22px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+            font-size: 14px;
+        }
+
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .submit-btn {
+            width: 100%;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.3s ease;
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .referral-results {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+        }
+
+        .referral-results h2 {
+            margin-bottom: 20px;
+            color: #667eea;
+            font-size: 22px;
+        }
+
+        .patient-info {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border-left: 4px solid #667eea;
+        }
+
+        .patient-info-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .patient-info-label {
+            font-weight: 600;
+            color: #666;
+        }
+
+        .patient-info-value {
+            color: #333;
+        }
+
+        .recommendation-card {
+            background: white;
+            border: 2px solid #e0e0e0;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            transition: all 0.3s ease;
+        }
+
+        .recommendation-card:hover {
+            border-color: #667eea;
+            transform: translateX(5px);
+        }
+
+        .recommendation-card.top {
+            border-color: #2ecc71;
+            background: linear-gradient(135deg, #f0fff4 0%, #ffffff 100%);
+        }
+
+        .recommendation-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .recommendation-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: #333;
+        }
+
+        .recommendation-score {
+            font-size: 24px;
+            font-weight: 700;
+            color: #667eea;
+        }
+
+        .priority-badge {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-top: 5px;
+        }
+
+        .priority-high {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .priority-medium {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .priority-low {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .recommendation-reasons {
+            margin: 15px 0;
+        }
+
+        .reason-item {
+            display: flex;
+            align-items: center;
+            padding: 8px 0;
+            font-size: 13px;
+            color: #555;
+        }
+
+        .reason-item::before {
+            content: "✓";
+            color: #2ecc71;
+            font-weight: 700;
+            margin-right: 10px;
+        }
+
+        .recommendation-details {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .detail-item {
+            text-align: center;
+        }
+
+        .detail-label {
+            font-size: 11px;
+            color: #888;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+        }
+
+        .detail-value {
+            font-size: 18px;
+            font-weight: 700;
+            color: #333;
+        }
+
+        @media (max-width: 1024px) {
+            .referral-container {
+                grid-template-columns: 1fr;
+            }
+            
+            header {
+                flex-direction: column;
+                gap: 15px;
+            }
+            
+            .navbar {
+                width: 100%;
+            }
+            
+            .nav-btn {
+                flex: 1;
+            }
+        }
+        .heatmap-legend {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            margin-top: 15px;
+            font-size: 12px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+        }
+        header {
+            background: rgba(255,255,255,0.92);
+            padding: 15px 0;
+            box-shadow: 0 6px 30px rgba(2,6,23,0.35);
+            margin-bottom: 30px;
+            width: 100%;
+            backdrop-filter: blur(6px);
+        }
+
+        .header-content {
+            padding: 0 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 20px;
+        }
+        .header-left, .header-right {
+            flex: 1;
+        }
+
+        .header-right {
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .navbar {
+            display: flex;
+            gap: 40px;
+            flex-shrink: 0;
+        }
+
+        .nav-btn {
+            background: none;
+            color: #666;
+            border: none;
+            padding: 8px 0;
+            border-radius: 0;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 15px;
+            letter-spacing: 0.5px;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+
+        .nav-btn:hover {
+            color: #667eea;
+            background: none;
+        }
+
+        .nav-btn::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: #667eea;
+            transition: width 0.3s ease;
+        }
+
+        .nav-btn.active {
+            background: none;
+            color: #667eea;
+        }
+
+        .nav-btn.active::after {
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <div class="header-left">
+                <h1>Operational Command Center</h1>
+                <div class="subtitle">Sistem Pemantauan Layanan Kesehatan Real-Time</div>
+            </div>
+
+            <nav class="navbar">
+                <button class="nav-btn active" onclick="showPage('referral')">Rujukan</button>
+                <button class="nav-btn" onclick="showPage('dashboard')">Dashboard</button>
+            </nav>
+
+            <div class="header-right">
+                <div class="last-update" id="lastUpdate">Loading...</div>
+            </div>
+        </div>
+    </header>
+    <div class="container">
+
+        <div id="referralPage" class="page-content">
+            <div class="referral-container">
+                <div class="referral-form-card">
+                    <h2>Form Rujukan Pasien</h2>
+                    <form id="referralForm" onsubmit="submitReferral(event)">
+                        <div class="form-group">
+                            <label>Nama Pasien *</label>
+                            <input type="text" id="patientName" required placeholder="Masukkan nama lengkap">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Umur *</label>
+                            <input type="number" id="patientAge" required min="0" max="150" placeholder="Tahun">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Spesialisasi Dibutuhkan</label>
+                            <select id="patientSpecialty">
+                                <option value="Umum">Umum</option>
+                                <option value="Jantung">Jantung</option>
+                                <option value="Paru">Paru</option>
+                                <option value="Anak">Anak</option>
+                                <option value="Bedah">Bedah</option>
+                                <option value="Saraf">Saraf</option>
+                                <option value="Orthopedi">Orthopedi</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Keluhan *</label>
+                            <textarea id="patientComplaint" required rows="4" placeholder="Jelaskan keluhan pasien... (Sistem akan mendeteksi tingkat kegawatan secara otomatis)"></textarea>
+                            <small style="color: #888; font-size: 12px; margin-top: 5px; display: block;">
+                                Tip: Jelaskan keluhan sejelas mungkin. Contoh: "sesak napas", "demam tinggi", "nyeri dada"
+                            </small>
+                        </div>
+                        
+                        <button type="submit" class="submit-btn">Cari Rekomendasi Rujukan</button>
+                    </form>
+                </div>
+                
+                <div class="referral-results" id="referralResults" style="display: none;">
+                    <h2>Rekomendasi Rujukan</h2>
+                    <div class="patient-info" id="patientInfo"></div>
+                    <div id="recommendationList"></div>
+                </div>
+            </div>
+        </div>
+
+
+        <div id="dashboardPage" class="page-content" style="display: none;">
+
+        <div class="stats-grid" id="statsGrid">
+            <div class="loading">Memuat data...</div>
+        </div>
+
+        <div class="dashboard-grid">
+            <div class="dashboard-card">
+                <h3 class="card-title">Tingkat Okupansi per RS</h3>
+                <div class="chart-container">
+                    <canvas id="occupancyChart"></canvas>
+                </div> <br>
+
+                <h3 class="card-title">Distribusi Tipe Tempat Tidur</h3>
+                <div class="chart-container">
+                    <canvas id="bedDistChart"></canvas>
+                </div> <br>
+
+                <div style="margin-top: 20px;">
+                    <h3 class="card-title">Perbandingan Kunjungan per RS</h3>
+                    <div class="chart-container">
+                        <canvas id="visitsChart"></canvas>
+                    </div> <br>
+                </div>
+
+                <h3 class="card-title">Heat Map Jam Sibuk IGD (24 Jam)</h3>
+                <div class="chart-container" style="height: 400px;">
+                    <canvas id="heatmapChart"></canvas>
+                </div>
+            </div>
+
+            <div class="dashboard-card">
+                <h3 class="card-title">Ketersediaan Tenaga Medis</h3>
+                <div id="staffStatus">
+                    <div class="loading">Memuat data...</div>
+                </div>
+            </div>
+
+            <div class="dashboard-card">
+                <h3 class="card-title">Status Sumber Daya</h3>
+                <div id="resourceStatus">
+                    <div class="loading">Memuat data...</div>
+                </div>
+            </div>
+            <div class="dashboard-card">
+                <h3 class="card-title">Kapasitas Tempat Tidur <span class="data-quality-badge quality-high">Data Valid</span></h3>
+                <div id="bedCapacity">
+                    <div class="loading">Memuat data...</div>
+                </div>
+            </div>
+
+            <div class="dashboard-card">
+                <h3 class="card-title">Status IGD <span class="data-quality-badge quality-high">Real-time</span></h3>
+                <div id="erStatus">
+                    <div class="loading">Memuat data...</div>
+                </div>
+            </div>
+
+            <div class="dashboard-card">
+                <h3 class="card-title">Antrian Poliklinik</h3>
+                <div id="queueStatus">
+                    <div class="loading">Memuat data...</div>
+                </div>
+            </div>
+        </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = '';
+        let trendChart = null;
+        let visitsChart = null;
+        let bedDistChart = null;
+        let occupancyChart = null;
+        let heatmapChart = null;
+
+        async function fetchData(endpoint) {
+            try {
+                const response = await fetch(`${API_BASE}/api/${endpoint}`);
+                if (!response.ok) throw new Error('Network error');
+                return await response.json();
+            } catch (error) {
+                console.error(`Error fetching ${endpoint}:`, error);
+                return null;
+            }
+        }
+
+        function getProgressColor(percentage) {
+            if (percentage < 70) return 'green';
+            if (percentage < 85) return 'yellow';
+            return 'red';
+        }
+
+        function formatTime(isoString) {
+            const date = new Date(isoString);
+            return date.toLocaleString('id-ID', {
+                day: '2-digit',
+                month: 'short',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        async function loadOverview() {
+            const data = await fetchData('overview');
+            if (!data) return;
+
+            const { summary } = data;
+            const statsHtml = `
+                <div class="stat-card">
+                    <div class="stat-label">Total Rumah Sakit</div>
+                    <div class="stat-value">${summary.total_hospitals}</div>
+                    <div class="stat-subtext">Aktif memantau</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Total Tempat Tidur</div>
+                    <div class="stat-value">${summary.total_beds}</div>
+                    <div class="stat-subtext">${summary.available_beds} tersedia</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Tingkat Okupansi</div>
+                    <div class="stat-value">${summary.occupancy_rate}%</div>
+                    <div class="stat-subtext">${summary.occupied_beds} terisi</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Pasien IGD</div>
+                    <div class="stat-value">${summary.total_er_patients}</div>
+                    <div class="stat-subtext">Saat ini</div>
+                </div>
+            `;
+            document.getElementById('statsGrid').innerHTML = statsHtml;
+            document.getElementById('lastUpdate').textContent = `Update: ${formatTime(data.timestamp)}`;
+        }
+
+        async function loadBedCapacity() {
+            const data = await fetchData('beds');
+            if (!data) {
+                document.getElementById('bedCapacity').innerHTML = '<div class="error">Gagal memuat data</div>';
+                return;
+            }
+
+            let html = '';
+            data.data.forEach(hospital => {
+                html += `
+                    <div class="hospital-item">
+                        <div class="hospital-name">${hospital.hospital_name}</div>
+                        
+                        <div class="capacity-bar">
+                            <div class="capacity-label">ICU</div>
+                            <div class="progress-bar">
+                                <div class="progress-fill ${getProgressColor(hospital.icu.occupancy_rate)}" 
+                                     style="width: ${hospital.icu.occupancy_rate}%">
+                                    ${hospital.icu.occupancy_rate}%
+                                </div>
+                            </div>
+                            <div class="capacity-value">${hospital.icu.occupied}/${hospital.icu.total}</div>
+                        </div>
+                        
+                        <div class="capacity-bar">
+                            <div class="capacity-label">Reguler</div>
+                            <div class="progress-bar">
+                                <div class="progress-fill ${getProgressColor(hospital.regular.occupancy_rate)}" 
+                                     style="width: ${hospital.regular.occupancy_rate}%">
+                                    ${hospital.regular.occupancy_rate}%
+                                </div>
+                            </div>
+                            <div class="capacity-value">${hospital.regular.occupied}/${hospital.regular.total}</div>
+                        </div>
+                        
+                        <div class="capacity-bar">
+                            <div class="capacity-label">Isolasi</div>
+                            <div class="progress-bar">
+                                <div class="progress-fill ${getProgressColor(hospital.isolation.occupancy_rate)}" 
+                                     style="width: ${hospital.isolation.occupancy_rate}%">
+                                    ${hospital.isolation.occupancy_rate}%
+                                </div>
+                            </div>
+                            <div class="capacity-value">${hospital.isolation.occupied}/${hospital.isolation.total}</div>
+                        </div>
+                    </div>
+                `;
+            });
+            document.getElementById('bedCapacity').innerHTML = html;
+        }
+
+        async function loadERStatus() {
+            const data = await fetchData('emergency');
+            if (!data) {
+                document.getElementById('erStatus').innerHTML = '<div class="error">Gagal memuat data</div>';
+                return;
+            }
+
+            let html = '';
+            data.data.forEach(hospital => {
+                const statusClass = hospital.status === 'normal' ? 'status-normal' : 'status-crowded';
+                const statusText = hospital.status === 'normal' ? 'Normal' : 'Padat';
+                
+                html += `
+                    <div class="hospital-item">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div class="hospital-name">${hospital.hospital_name}</div>
+                            <span class="status-badge ${statusClass}">${statusText}</span>
+                        </div>
+                        
+                        <div class="er-status">
+                            <div class="er-metric">
+                                <div class="er-metric-label">Menunggu</div>
+                                <div class="er-metric-value">${hospital.waiting_patients}</div>
+                            </div>
+                            <div class="er-metric">
+                                <div class="er-metric-label">Dalam Perawatan</div>
+                                <div class="er-metric-value">${hospital.in_treatment}</div>
+                            </div>
+                            <div class="er-metric">
+                                <div class="er-metric-label">Rata-rata Tunggu</div>
+                                <div class="er-metric-value">${hospital.avg_waiting_time}m</div>
+                            </div>
+                            <div class="er-metric">
+                                <div class="er-metric-label">Total Pasien</div>
+                                <div class="er-metric-value">${hospital.waiting_patients + hospital.in_treatment}</div>
+                            </div>
+                        </div>
+                        
+                        <div class="severity-tags">
+                            <span class="severity-tag severity-critical">Kritis: ${hospital.severity_distribution.critical}</span>
+                            <span class="severity-tag severity-urgent">Urgent: ${hospital.severity_distribution.urgent}</span>
+                            <span class="severity-tag severity-semi">Semi-urgent: ${hospital.severity_distribution.semi_urgent}</span>
+                            <span class="severity-tag severity-non">Non-urgent: ${hospital.severity_distribution.non_urgent}</span>
+                        </div>
+                    </div>
+                `;
+            });
+            document.getElementById('erStatus').innerHTML = html;
+        }
+
+        async function loadQueueStatus() {
+            const data = await fetchData('queues');
+            if (!data) {
+                document.getElementById('queueStatus').innerHTML = '<div class="error">Gagal memuat data</div>';
+                return;
+            }
+
+
+            const byHospital = {};
+            data.data.forEach(item => {
+                if (!byHospital[item.hospital_name]) {
+                    byHospital[item.hospital_name] = [];
+                }
+                byHospital[item.hospital_name].push(item);
+            });
+
+            let html = '';
+            Object.entries(byHospital).forEach(([hospitalName, queues]) => {
+                html += `<div class="hospital-item">
+                    <div class="hospital-name">${hospitalName}</div>`;
+                
+                queues.forEach(queue => {
+                    html += `
+                        <div class="queue-item">
+                            <div>
+                                <div class="queue-name">${queue.polyclinic}</div>
+                                <div style="font-size: 11px; color: #888;">
+                                    Dilayani hari ini: ${queue.served_today} | Rata-rata: ${queue.avg_service_time}m
+                                </div>
+                            </div>
+                            <div class="queue-count">${queue.current_queue}</div>
+                        </div>
+                    `;
+                });
+                
+                html += '</div>';
+            });
+            
+            document.getElementById('queueStatus').innerHTML = html;
+        }
+
+        async function loadTrends() {
+            const data = await fetchData('trends');
+            if (!data) return;
+
+            const ctx = document.getElementById('trendChart').getContext('2d');
+            
+            if (trendChart) {
+                trendChart.destroy();
+            }
+
+            trendChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.data.dates.map(d => {
+                        const date = new Date(d);
+                        return date.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
+                    }),
+                    datasets: [
+                        {
+                            label: 'Okupansi (%)',
+                            data: data.data.occupancy_trend,
+                            borderColor: '#667eea',
+                            backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                            tension: 0.4,
+                            fill: true
+                        },
+                        {
+                            label: 'Kunjungan IGD',
+                            data: data.data.er_visits_trend,
+                            borderColor: '#f39c12',
+                            backgroundColor: 'rgba(243, 156, 18, 0.1)',
+                            tension: 0.4,
+                            fill: true
+                        },
+                        {
+                            label: 'Rawat Inap Baru',
+                            data: data.data.admissions_trend,
+                            borderColor: '#2ecc71',
+                            backgroundColor: 'rgba(46, 204, 113, 0.1)',
+                            tension: 0.4,
+                            fill: true
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        async function loadVisualizations() {
+            const data = await fetchData('visualizations');
+            if (!data) return;
+
+
+            const ctxVisits = document.getElementById('visitsChart').getContext('2d');
+            if (visitsChart) visitsChart.destroy();
+            
+            visitsChart = new Chart(ctxVisits, {
+                type: 'bar',
+                data: {
+                    labels: data.visits_comparison.map(v => v.hospital),
+                    datasets: [
+                        {
+                            label: 'Kunjungan IGD',
+                            data: data.visits_comparison.map(v => v.er_visits),
+                            backgroundColor: 'rgba(243, 156, 18, 0.7)',
+                            borderColor: '#f39c12',
+                            borderWidth: 2
+                        },
+                        {
+                            label: 'Rawat Jalan',
+                            data: data.visits_comparison.map(v => v.outpatient),
+                            backgroundColor: 'rgba(52, 152, 219, 0.7)',
+                            borderColor: '#3498db',
+                            borderWidth: 2
+                        },
+                        {
+                            label: 'Rawat Inap',
+                            data: data.visits_comparison.map(v => v.admissions),
+                            backgroundColor: 'rgba(46, 204, 113, 0.7)',
+                            borderColor: '#2ecc71',
+                            borderWidth: 2
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+
+
+            const ctxBedDist = document.getElementById('bedDistChart').getContext('2d');
+            if (bedDistChart) bedDistChart.destroy();
+            
+            bedDistChart = new Chart(ctxBedDist, {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(data.bed_distribution),
+                    datasets: [{
+                        data: Object.values(data.bed_distribution),
+                        backgroundColor: [
+                            'rgba(231, 76, 60, 0.8)',
+                            'rgba(52, 152, 219, 0.8)',
+                            'rgba(241, 196, 15, 0.8)'
+                        ],
+                        borderColor: [
+                            '#e74c3c',
+                            '#3498db',
+                            '#f1c40f'
+                        ],
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+
+
+            const ctxOccupancy = document.getElementById('occupancyChart').getContext('2d');
+            if (occupancyChart) occupancyChart.destroy();
+            
+            occupancyChart = new Chart(ctxOccupancy, {
+                type: 'bar',
+                data: {
+                    labels: data.occupancy_by_hospital.map(h => h.hospital),
+                    datasets: [{
+                        label: 'Tingkat Okupansi (%)',
+                        data: data.occupancy_by_hospital.map(h => h.occupancy_rate),
+                        backgroundColor: data.occupancy_by_hospital.map(h => {
+                            if (h.occupancy_rate < 70) return 'rgba(46, 204, 113, 0.7)';
+                            if (h.occupancy_rate < 85) return 'rgba(243, 156, 18, 0.7)';
+                            return 'rgba(231, 76, 60, 0.7)';
+                        }),
+                        borderColor: data.occupancy_by_hospital.map(h => {
+                            if (h.occupancy_rate < 70) return '#2ecc71';
+                            if (h.occupancy_rate < 85) return '#f39c12';
+                            return '#e74c3c';
+                        }),
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            max: 100
+                        }
+                    }
+                }
+            });
+            const ctxHeatmap = document.getElementById('heatmapChart').getContext('2d');
+            if (heatmapChart) heatmapChart.destroy();
+            
+            const hours = Array.from({length: 24}, (_, i) => `${i.toString().padStart(2, '0')}:00`);
+            const heatmapDatasets = data.heatmap_data.map((hospital, idx) => {
+                const colors = [
+                    'rgba(231, 76, 60, 0.6)',
+                    'rgba(52, 152, 219, 0.6)',
+                    'rgba(46, 204, 113, 0.6)',
+                    'rgba(155, 89, 182, 0.6)'
+                ];
+                const borderColors = ['#e74c3c', '#3498db', '#2ecc71', '#9b59b6'];
+                
+                return {
+                    label: hospital.hospital_name,
+                    data: hospital.hourly_data,
+                    backgroundColor: colors[idx % colors.length],
+                    borderColor: borderColors[idx % borderColors.length],
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.4
+                };
+            });
+            
+            heatmapChart = new Chart(ctxHeatmap, {
+                type: 'line',
+                data: {
+                    labels: hours,
+                    datasets: heatmapDatasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return `${context.dataset.label}: ${context.parsed.y} pasien`;
+                                },
+                                footer: function(tooltipItems) {
+                                    const total = tooltipItems.reduce((sum, item) => sum + item.parsed.y, 0);
+                                    return `Total: ${total} pasien`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Jumlah Pasien IGD'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Jam (24 Jam)'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function showPage(page) {
+    
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            if (page === 'referral') {
+                document.getElementById('dashboardPage').style.display = 'none';
+                document.getElementById('referralPage').style.display = 'block';
+            } else if (page === 'dashboard') {
+                document.getElementById('dashboardPage').style.display = 'block';
+                document.getElementById('referralPage').style.display = 'none';
+            }
+        }
+
+        async function submitReferral(event) {
+            event.preventDefault();
+            
+            const formData = {
+                name: document.getElementById('patientName').value,
+                age: parseInt(document.getElementById('patientAge').value),
+                complaint: document.getElementById('patientComplaint').value,
+                specialty: document.getElementById('patientSpecialty').value
+            };
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/referral/recommend`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(formData)
+                });
+                
+                if (!response.ok) throw new Error('Failed to get recommendations');
+                
+                const data = await response.json();
+                displayRecommendations(data);
+                
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Gagal mendapatkan rekomendasi. Silakan coba lagi.');
+            }
+        }
+
+        function displayRecommendations(data) {
+            const resultsDiv = document.getElementById('referralResults');
+            const patientInfoDiv = document.getElementById('patientInfo');
+            const recommendationListDiv = document.getElementById('recommendationList');
+            
+            patientInfoDiv.innerHTML = `
+                <div class="patient-info-row">
+                    <span class="patient-info-label">Nama:</span>
+                    <span class="patient-info-value">${data.patient.name}</span>
+                </div>
+                <div class="patient-info-row">
+                    <span class="patient-info-label">Umur:</span>
+                    <span class="patient-info-value">${data.patient.age} tahun</span>
+                </div>
+                <div class="patient-info-row">
+                    <span class="patient-info-label">Keluhan:</span>
+                    <span class="patient-info-value">${data.patient.complaint}</span>
+                </div>
+                <div class="patient-info-row">
+                    <span class="patient-info-label">Spesialisasi:</span>
+                    <span class="patient-info-value">${data.patient.specialty}</span>
+                </div>
+                <div class="patient-info-row">
+                    <span class="patient-info-label">Tingkat Kegawatan:</span>
+                    <span class="patient-info-value"><strong>${data.patient.severity_text}</strong></span>
+                </div>
+            `;
+            
+
+            let html = '';
+            data.recommendations.forEach((rec, index) => {
+                const priorityClass = rec.priority === 'Sangat Direkomendasikan' ? 'priority-high' :
+                                     rec.priority === 'Direkomendasikan' ? 'priority-medium' : 'priority-low';
+                const cardClass = index === 0 ? 'recommendation-card top' : 'recommendation-card';
+                
+                 html += `
+                    <div class="${cardClass}">
+                        <div class="recommendation-header">
+                            <div>
+                                <div class="recommendation-title">
+                                    ${index === 0 ? ' ' : ''}${rec.hospital_name}
+                                </div>
+                                <div class="hospital-address">
+                                     ${rec.address}
+                                </div>
+                                <div style="margin-top: 8px;">
+                                    <span class="status-badge">${rec.hospital_type}</span>
+                                    <span class="priority-badge ${priorityClass}">${rec.priority}</span>
+                                </div>
+                            </div>
+                            <div class="recommendation-score">${rec.score}</div>
+                        </div>
+                        
+                        <div class="recommendation-reasons">
+                            ${rec.reasons.map(reason => `<div class="reason-item">${reason}</div>`).join('')}
+                        </div>
+                        
+                        <div class="recommendation-details">
+                            <div class="detail-item">
+                                <div class="detail-label">Tempat Tidur</div>
+                                <div class="detail-value">${rec.details.beds_available}</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">Dokter Jaga</div>
+                                <div class="detail-value">${rec.details.doctors_on_duty}</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">Okupansi</div>
+                                <div class="detail-value">${rec.details.occupancy_rate}%</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">Antrian IGD</div>
+                                <div class="detail-value">${rec.details.er_waiting}</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">Waktu Tunggu</div>
+                                <div class="detail-value">${rec.details.estimated_wait_time}m</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">Traffic Saat Ini</div>
+                                <div class="detail-value">${rec.details.current_traffic}</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            recommendationListDiv.innerHTML = html;
+            resultsDiv.style.display = 'block';
+            
+
+            resultsDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        async function loadStaffStatus() {
+            const data = await fetchData('staff');
+            if (!data) {
+                document.getElementById('staffStatus').innerHTML = '<div class="error">Gagal memuat data</div>';
+                return;
+            }
+
+            let html = '';
+            data.data.forEach(hospital => {
+                html += `
+                    <div class="hospital-item">
+                        <div class="hospital-name">${hospital.hospital_name} 
+                            <span style="font-size: 12px; color: #888;">(Shift ${hospital.shift})</span>
+                        </div>
+                        
+                        <div class="capacity-bar">
+                            <div class="capacity-label">Dokter</div>
+                            <div class="progress-bar">
+                                <div class="progress-fill green" 
+                                     style="width: ${(hospital.staff.doctors.on_duty / hospital.staff.doctors.total) * 100}%">
+                                </div>
+                            </div>
+                            <div class="capacity-value">${hospital.staff.doctors.on_duty}/${hospital.staff.doctors.total}</div>
+                        </div>
+                        
+                        <div class="capacity-bar">
+                            <div class="capacity-label">Perawat</div>
+                            <div class="progress-bar">
+                                <div class="progress-fill green" 
+                                     style="width: ${(hospital.staff.nurses.on_duty / hospital.staff.nurses.total) * 100}%">
+                                </div>
+                            </div>
+                            <div class="capacity-value">${hospital.staff.nurses.on_duty}/${hospital.staff.nurses.total}</div>
+                        </div>
+                        
+                        <div style="font-size: 12px; color: #666; margin-top: 8px;">
+                            Spesialis tersedia: ${hospital.staff.doctors.specialists_available} | 
+                            Apoteker: ${hospital.staff.pharmacists.on_duty} | 
+                            Lab: ${hospital.staff.lab_technicians.on_duty}
+                        </div>
+                    </div>
+                `;
+            });
+            document.getElementById('staffStatus').innerHTML = html;
+        }
+
+        async function loadResourceStatus() {
+            const data = await fetchData('resources');
+            if (!data) {
+                document.getElementById('resourceStatus').innerHTML = '<div class="error">Gagal memuat data</div>';
+                return;
+            }
+
+            let html = '';
+            data.data.forEach(hospital => {
+                const oxygenClass = hospital.resources.oxygen.status === 'sufficient' ? 'status-normal' : 
+                                   hospital.resources.oxygen.status === 'low' ? 'status-crowded' : 'status-critical';
+                
+                html += `
+                    <div class="hospital-item">
+                        <div class="hospital-name">${hospital.hospital_name}</div>
+                        
+                        <div style="margin: 10px 0;">
+                            <strong>Oksigen:</strong> 
+                            <span class="status-badge ${oxygenClass}">${hospital.resources.oxygen.percentage}%</span>
+                        </div>
+                        
+                        <div style="margin: 10px 0;">
+                            <strong>Bank Darah:</strong><br>
+                            <div style="display: flex; gap: 10px; margin-top: 5px; flex-wrap: wrap;">
+                                <span style="background: #fee; padding: 5px 10px; border-radius: 5px; font-size: 12px;">
+                                    A: ${hospital.resources.blood_bank.A} kantong
+                                </span>
+                                <span style="background: #fef; padding: 5px 10px; border-radius: 5px; font-size: 12px;">
+                                    B: ${hospital.resources.blood_bank.B} kantong
+                                </span>
+                                <span style="background: #ffe; padding: 5px 10px; border-radius: 5px; font-size: 12px;">
+                                    AB: ${hospital.resources.blood_bank.AB} kantong
+                                </span>
+                                <span style="background: #efe; padding: 5px 10px; border-radius: 5px; font-size: 12px;">
+                                    O: ${hospital.resources.blood_bank.O} kantong
+                                </span>
+                            </div>
+                        </div>
+                        
+                        <div style="font-size: 12px; color: #666; margin-top: 8px;">
+                            Ventilator: ${hospital.resources.equipment.ventilators_available}/${hospital.resources.equipment.ventilators_total} | 
+                            Ambulans: ${hospital.resources.equipment.ambulances_available}/${hospital.resources.equipment.ambulances_total}
+                        </div>
+                    </div>
+                `;
+            });
+            document.getElementById('resourceStatus').innerHTML = html;
+        }
+
+        async function refreshAll() {
+            await Promise.all([
+                loadOverview(),
+                loadBedCapacity(),
+                loadERStatus(),
+                loadQueueStatus(),
+                loadTrends(),
+                loadStaffStatus(),
+                loadResourceStatus(),
+                loadVisualizations()
+            ]);
+        }
+
+
+        refreshAll();
+
+
+        setInterval(refreshAll, 30000);
+    </script>
+</body>
+</html>
